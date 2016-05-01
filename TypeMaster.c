@@ -331,6 +331,7 @@ int main() {
 		cprintf(20, 5, L"%s", MESSAGE_START_EXCUTE);
 		cprintf(20, 6, L"%s", MESSAGE_START_QUIT);
 		cprintf(0, 0, " ");
+		flip();
 		excuteFLG = getch();
 		if (excuteFLG == 'y') {
 			type();
