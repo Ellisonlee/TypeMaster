@@ -102,7 +102,7 @@ void textcolor(COLORREF color) {
 	textcolor_value = color;
 }
 
-void cprintf(int x, int y, wchar_t* key, ...) {
+void cprintf(float x, int y, wchar_t* key, ...) {
 	wchar_t dest[MAX_STRING_SZ];
 	va_list arg;
 	va_start(arg, key);
@@ -202,6 +202,8 @@ void type() {
 	int len;
 	struct FileInfo* fi;
 	wchar_t *check_key;
+	SIZE stringWidthInPixel;
+
 	fi = read_file();
 
 	for (last = fi->num; last > 0; ) {
@@ -224,14 +226,16 @@ void type() {
 			}
 			else if (check_key[i] == key) {
 				textcolor(GREEN);
-				cprintf(23 + i, 2, L"%c", key);
+				GetTextExtentPoint32(hDC, check_key, i, &stringWidthInPixel);
+				cprintf(23 + (float)stringWidthInPixel.cx / font_width, 2, L"%c", key);
 				cprintf(0, 0, " ");
 				type[i] = key;
 				i++;
 			}
 			else {
 				textcolor(RED);
-				cprintf(23 + i, 2, L"%c", key);
+				GetTextExtentPoint32(hDC, check_key, i, &stringWidthInPixel);
+				cprintf(23 + (float)stringWidthInPixel.cx / font_width, 2, L"%c", key);
 				cprintf(0, 0, " ");
 				type[i] = key;
 				i++;
