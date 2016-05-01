@@ -118,12 +118,12 @@ void cprintf(float x, int y, wchar_t* key, ...) {
 	TextOut(hDC, x * font_width + wi.left, y * font_height + wi.top, dest, wcslen(dest));
 }
 
-int stringCompare(char str1[], char str2[]) {
+int stringCompare(wchar_t str1[], char str2[]) {
 	int i = 0, ret = 0;
 	int len1;
 	int len2;
 
-	len1 = strlen(str1);
+	len1 = wcslen(str1);
 	len2 = strlen(str2);
 
 	while (i < len1 && i < len2) {
@@ -152,7 +152,7 @@ void hidecursor() {
 
 struct FileInfo {
 	int num;
-	char **strs;
+	wchar_t **strs;
 };
 
 struct FileInfo* read_file() {
