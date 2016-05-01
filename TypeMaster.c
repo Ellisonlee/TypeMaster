@@ -16,7 +16,6 @@
 #include <conio.h>
 #include <windows.h>
 
-
 //データ定義
 char MESSAGE_WELCOME[] = "***** ようこそ、TypeMasterへ *****";
 char MESSAGE_READY[] = "英文タイピング初級編を開始します。";
@@ -31,52 +30,53 @@ char MESSAGE_WRONG[] = "間違っています ";
 char SELECT[] = "<r:再実行,c:継続,q:終了>";
 
 int stringCompare(char str1[], char str2[]) {
-	int i = 0, flag = 1;
-	int min;
+	int i = 0, ret = 0;
+	int len1;
+	int len2;
 
-	if (strlen(str1) != strlen(str2)) {
-		flag = 0;
-	}
-	else
+	len1 = strlen(str1);
+	len2 = strlen(str2);
+	
+	while (i < len1 && i < len2)
 	{
-		min = strlen(str1);
-		while (i<min)
+		if (str1[i] == str2[i]) {
+			i++;
+		}
+		else
 		{
-			if (str1[i] == str2[i]) {
-				i++;
-			}
-			else
-			{
-				flag = i+1;
-				break;
-			}
+			ret = i+1;
+			break;
 		}
 	}
 	
-	return flag;
+	if( len2 < len1 ) {
+		ret = len2;
+	}
+	
+	return ret;
 }
 
-void type() {
-	char type[MAX_STRING_SZ];
-	char buf[MAX_STRING_SZ+1];
-	int right;
+struct FileInfo {
 	int num;
-	int last;
-	char isRetry;
-	int i;
-	int j =0;
-	int len1;
-	int len2;
+	char **strs;
+};
+
+struct FileInfo* read_file() {
 	char **strs;
 	FILE *fp;
+	int len1;
+	int i;
+	int num;
+	char buf[MAX_STRING_SZ+1];
+	struct FileInfo *fi;
 	
-	if ((fp = fopen("data.txt", "r")) == NULL)
-	{
+	if ((fp = fopen("data.txt", "r")) == NULL) {
 		printf("File doesn't exist!\n");
-	}	
+		getchar();
+		return 0;
+	}
 	fgets(buf, MAX_STRING_SZ, fp);
 	sscanf(buf, "%d", &num);
-	last = num;
 	strs = (char**)malloc(sizeof(char*) * num);
 	
 	for (i = 0; i < num; ++i) {
@@ -91,66 +91,86 @@ void type() {
 	}
 	fclose(fp);
 
-	while(j < num) {
-			textbackground(BLUE);
-			window(13,6,67,13);
-			clrscr();
-			gotoxy(23,2);
-			cprintf("%s",strs[j]);
-			gotoxy(23,3);
-			fgets(type, MAX_STRING_SZ, stdin);
-			//Change the last char from \n to \0
-			len2 = strlen(type);
-			if (len2 > 0 && type[len2 - 1] == '\n') {
-				type[--len2] = '\0';
+	fi = (struct FileInfo*)malloc(sizeof(struct FileInfo));
+	fi->num = num;
+	fi->strs = strs;
+	return fi;
+}
+
+void type() {
+	char type[MAX_STRING_SZ];
+	char key;
+	char buf[MAX_STRING_SZ+1];
+	int wrong_index;
+	int last;
+	char isRetry;
+	int i;
+	int len;
+	struct FileInfo* fi;
+	char *check_key;
+	fi = read_file();
+
+	for( last = fi->num; last > 0; ) {
+		check_key = fi->strs[fi->num - last];
+		len= strlen(check_key);
+		textbackground(BLUE);
+		window(13,6,67,13);
+		clrscr();
+		gotoxy(23,2);
+		cprintf("%s",check_key);
+		gotoxy(23,3);		
+		
+		i = 0;
+		while (i < len){
+			if ( !kbhit() ) {
+				continue; 
 			}
-			right = stringCompare(strs[j], type);
-			if (right == 1) {
-				gotoxy(23,5);
-				cprintf("%s",MESSAGE_RIGHT);
-			}
-			else
-			{
-				gotoxy(18,5);
-				cprintf("【%d文字目】", right);
-				cprintf(MESSAGE_WRONG);			
-			}
-			gotoxy(17,6);
-			cprintf(SELECT);
-			gotoxy(29,7);
-			isRetry = getche();
-			if (isRetry == 'c') {
-				j++;
-			}
-			else if (isRetry == 'r') {
-				printf("\n");
-			}
-			else
-			{
-				printf("Bye!");
-				exit(0);
+			key = getch();//Get a Key From Keyboard and Not Show It
+			if ( (i > 0 ) && (key == 127 || key == 8) ){
+				i--;
+				gotoxy(23+i,3);
+				cprintf(" ");
+				gotoxy(23+i,3);
+			} else if (check_key[i] == key){
+				textcolor(GREEN);
+				gotoxy(23+i,3);
+				cprintf("%c",key);
+				type[i] = key;
+				i++;
+			} else {
+				textcolor(RED);
+				gotoxy(23+i,3);
+				cprintf("%c",key);
+				type[i] = key;
+				i++;
 			}
 		}
+		type[i] = '\0';	
+		wrong_index = stringCompare(fi->strs[fi->num -last], type);		
+		
+		textcolor(7);
+		if ( wrong_index != 0){	
+			gotoxy(18,5);		
+			cprintf("【%d文字目】%s", wrong_index, MESSAGE_WRONG);
+		} else {
+			gotoxy(23,5);
+			cprintf("%s", MESSAGE_RIGHT);
+		}
+		gotoxy(17,6);
+		cprintf(SELECT);
+		gotoxy(29,7);
+		isRetry = getche();
+		if (isRetry == 'c') {
+			last--;
+		} else if (isRetry == 'r') {
+			continue;
+		} else {
+			printf("Bye!");
+			Sleep(100);
+			exit(0);
+		}
+	}
 
-
-	//while (right)
-	//{
-	//	type = getche();//Get a Key From Keyboard and Show It
-	//	if (t1[i] == type)
-	//	{
-	//		i++;
-	//	}
-	//	else
-	//	{
-	//		printf("\nwrong");
-	//		right = 0;
-	//		exit(0);
-	//	}
-	//	if (strlen(t1) - 1 == i) {
-	//		printf("\nCOn");
-	//		exit(0);
-	//	}
-	//}
 }
 
 int main()
