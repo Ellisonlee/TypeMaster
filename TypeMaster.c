@@ -1,33 +1,118 @@
 /***************************
- * Create by Ellison Lee
- * Date:2016/04/29
- * Desciption:Type Game
- ***************************/
+* Create by Ellison Lee
+* Date:2016/04/29
+* Desciption:Type Game
+***************************/
 
 #define _CRT_SECURE_NO_WARNINGS
 #define MAX_STRING_SZ 255
+#define MY_BUFSIZE 1024
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
-#include <dos.h>
-#include <conio.h>
 #include <windows.h>
 
 //データ定義
-char MESSAGE_WELCOME[] = "***** ようこそ、TypeMasterへ *****";
-char MESSAGE_READY[] = "英文タイピング初級編を開始します。";
-char MESSAGE_READY_START[] = "<Press s to Start>";
-char MESSAGE_READY_QUIT[] = "<Press q to Quit>";
-char MESSAGE_START[] = "これから表示される英文を間違えないように入力ください。";
-char MESSAGE_START_EXCUTE[] = "<Press y to Begin>";
-char MESSAGE_START_QUIT[] = "<Press n to Stop>";
-char PROMPT[] = "> ";
-char MESSAGE_RIGHT[] = "素晴らしい！ ";
-char MESSAGE_WRONG[] = "間違っています ";
-char SELECT[] = "<r:再実行,c:継続,q:終了>";
+wchar_t *MESSAGE_WELCOME = L"***** ようこそ、TypeMasterへ *****";
+wchar_t *MESSAGE_READY = L"英文タイピング初級編を開始します。";
+wchar_t *MESSAGE_READY_START = L"<Press s to Start>";
+wchar_t *MESSAGE_READY_QUIT = L"<Press q to Quit>";
+wchar_t *MESSAGE_START = L"これから表示される英文を間違えないように入力ください。";
+wchar_t *MESSAGE_START_EXCUTE = L"<Press y to Begin>";
+wchar_t *MESSAGE_START_QUIT = L"<Press n to Stop>";
+wchar_t *MESSAGE_RIGHT = L"素晴らしい！ ";
+wchar_t *MESSAGE_WRONG = L"間違っています ";
+wchar_t *SELECT = L"<r:再実行,c:継続,q:終了>";
+COLORREF BLUE = RGB(0, 0, 255);
+COLORREF GREEN = RGB(0, 255, 0);
+COLORREF RED = RGB(255, 0, 0);
+COLORREF DARKGRAY = RGB(74, 65, 65);
+COLORREF CYAN = RGB(120, 120, 170);
+COLORREF WHITE = RGB(255, 255, 255);
+
+HDC hDC;
+COLORREF textcolor_value;
+
+int font_width = 8;
+int font_height = 18;
+
+typedef struct Window_Info
+{
+	int left;
+	int right;
+	int top;
+	int bottom;
+	COLORREF color;
+} Window_Info;
+Window_Info wi;
+
+HWND GetConsoleHwnd(void)
+{
+	// Buffer size for console window titles.
+	HWND hwndFound;         // This is what is returned to the caller.
+	char pszNewWindowTitle[MY_BUFSIZE]; // Contains fabricated
+	char pszOldWindowTitle[MY_BUFSIZE]; // Contains original
+
+	GetConsoleTitle(pszOldWindowTitle, MY_BUFSIZE);
+
+	wsprintf(pszNewWindowTitle, "%d/%d",
+		GetTickCount(),
+		GetCurrentProcessId());
+
+	SetConsoleTitle(pszNewWindowTitle);
+
+	Sleep(40);
+
+	hwndFound = FindWindow(NULL, pszNewWindowTitle);
+
+	SetConsoleTitle(pszOldWindowTitle);
+
+	return(hwndFound);
+}
+
+void clrscr() {
+	Rectangle(hDC, wi.left, wi.top, wi.right, wi.bottom);
+}
+
+void window(int left, int top, int right, int bottom, COLORREF color) {  
+
+	HBRUSH hBrush = CreateSolidBrush(color);	
+	HBRUSH holdBrush = (HBRUSH)SelectObject(hDC, hBrush);    
+
+	wi.left = left * font_width;
+	wi.top = top * font_height;
+	wi.right = right * font_width;
+	wi.bottom = bottom * font_height;
+	wi.color = color;
+	clrscr();
+}
+
+void eraser(int left, int top, COLORREF color) {
+	HPEN  hPen = CreatePen(PS_NULL, 1, color);
+	HPEN holdPen = (HBRUSH)SelectObject(hDC, hPen);
+	HBRUSH hBrush = CreateSolidBrush(color);
+	HBRUSH holdBrush = (HBRUSH)SelectObject(hDC, hBrush);
+	Rectangle(hDC, left * font_width + wi.left, top * font_height + wi.top, (left+1) * font_width + wi.left, (top+1) * font_height + wi.top);
+}
+
+void textcolor(COLORREF color) {
+	textcolor_value = color;
+}
+
+void cprintf(int x, int y, wchar_t* key, ...) {
+	wchar_t dest[MAX_STRING_SZ];
+	va_list arg;
+	va_start(arg, key);
+	vswprintf(dest, 255, key, arg);
+	va_end(arg);
+
+	SetTextColor(hDC, textcolor_value);
+	SetBkMode(hDC, TRANSPARENT);
+	TextOut(hDC, x * font_width + wi.left, y * font_height + wi.top, dest, wcslen(dest));
+}
 
 int stringCompare(char str1[], char str2[]) {
 	int i = 0, ret = 0;
@@ -36,7 +121,7 @@ int stringCompare(char str1[], char str2[]) {
 
 	len1 = strlen(str1);
 	len2 = strlen(str2);
-	
+
 	while (i < len1 && i < len2)
 	{
 		if (str1[i] == str2[i]) {
@@ -44,16 +129,25 @@ int stringCompare(char str1[], char str2[]) {
 		}
 		else
 		{
-			ret = i+1;
+			ret = i + 1;
 			break;
 		}
 	}
-	
-	if( len2 < len1 ) {
+
+	if (len2 < len1) {
 		ret = len2;
 	}
-	
+
 	return ret;
+}
+
+void hidecursor()
+{
+	HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_CURSOR_INFO info;
+	info.dwSize = 100;
+	info.bVisible = FALSE;
+	SetConsoleCursorInfo(consoleHandle, &info);
 }
 
 struct FileInfo {
@@ -62,32 +156,32 @@ struct FileInfo {
 };
 
 struct FileInfo* read_file() {
-	char **strs;
+	wchar_t **strs;
 	FILE *fp;
 	int len1;
 	int i;
 	int num;
-	char buf[MAX_STRING_SZ+1];
+	wchar_t buf[MAX_STRING_SZ + 1];
 	struct FileInfo *fi;
-	
+
 	if ((fp = fopen("data.txt", "r")) == NULL) {
 		printf("File doesn't exist!\n");
 		getchar();
 		return 0;
 	}
-	fgets(buf, MAX_STRING_SZ, fp);
-	sscanf(buf, "%d", &num);
-	strs = (char**)malloc(sizeof(char*) * num);
-	
+	fgetws(buf, MAX_STRING_SZ, fp);
+	sscanf((char*)buf, "%d", &num);
+	strs = (wchar_t**)malloc(sizeof(wchar_t*) * num);
+
 	for (i = 0; i < num; ++i) {
-		fgets(buf, MAX_STRING_SZ, fp);
+		fgetws(buf, MAX_STRING_SZ, fp);
 		//Change the last char from \n to \0
-		len1 = strlen(buf);
+		len1 = wcslen(buf);
 		if (len1 > 0 && buf[len1 - 1] == '\n') {
 			buf[--len1] = '\0';
 		}
-		strs[i] = (char*)malloc(sizeof(char) * (len1 + 1));
-		strcpy(strs[i], buf);
+		strs[i] = (wchar_t*)malloc(sizeof(wchar_t) * (len1 + 1));
+		wcscpy(strs[i], buf);
 	}
 	fclose(fp);
 
@@ -100,71 +194,71 @@ struct FileInfo* read_file() {
 void type() {
 	char type[MAX_STRING_SZ];
 	char key;
-	char buf[MAX_STRING_SZ+1];
+	char buf[MAX_STRING_SZ + 1];
 	int wrong_index;
 	int last;
 	char isRetry;
 	int i;
 	int len;
 	struct FileInfo* fi;
-	char *check_key;
+	wchar_t *check_key;
 	fi = read_file();
 
-	for( last = fi->num; last > 0; ) {
+	for (last = fi->num; last > 0; ) {
 		check_key = fi->strs[fi->num - last];
-		len= strlen(check_key);
-		textbackground(BLUE);
-		window(13,6,67,13);
+		len = wcslen(check_key);
+		window(13, 6, 67, 13, BLUE);
 		clrscr();
-		gotoxy(23,2);
-		cprintf("%s",check_key);
-		gotoxy(23,3);		
-		
+		cprintf(23, 1, L"%s", check_key);
+		cprintf(0, 0, " ");
+
 		i = 0;
-		while (i < len){
-			if ( !kbhit() ) {
-				continue; 
+		while (i < len) {
+			if (!kbhit()) {
+				continue;
 			}
 			key = getch();//Get a Key From Keyboard and Not Show It
-			if ( (i > 0 ) && (key == 127 || key == 8) ){
+			if ((i > 0) && (key == 127 || key == 8)) {
 				i--;
-				gotoxy(23+i,3);
-				cprintf(" ");
-				gotoxy(23+i,3);
-			} else if (check_key[i] == key){
+				eraser(23 + i, 2, BLUE);
+			}
+			else if (check_key[i] == key) {
 				textcolor(GREEN);
-				gotoxy(23+i,3);
-				cprintf("%c",key);
+				cprintf(23 + i, 2, L"%c", key);
+				cprintf(0, 0, " ");
 				type[i] = key;
 				i++;
-			} else {
+			}
+			else {
 				textcolor(RED);
-				gotoxy(23+i,3);
-				cprintf("%c",key);
+				cprintf(23 + i, 2, L"%c", key);
+				cprintf(0, 0, " ");
 				type[i] = key;
 				i++;
 			}
 		}
-		type[i] = '\0';	
-		wrong_index = stringCompare(fi->strs[fi->num -last], type);		
-		
-		textcolor(7);
-		if ( wrong_index != 0){	
-			gotoxy(18,5);		
-			cprintf("【%d文字目】%s", wrong_index, MESSAGE_WRONG);
-		} else {
-			gotoxy(23,5);
-			cprintf("%s", MESSAGE_RIGHT);
+		type[i] = '\0';
+		wrong_index = stringCompare(fi->strs[fi->num - last], type);
+
+		textcolor(WHITE);
+		if (wrong_index != 0) {
+			cprintf(18, 4, L"【%d文字目】%s", wrong_index, MESSAGE_WRONG);
+			cprintf(0, 0, " ");
 		}
-		gotoxy(17,6);
-		cprintf(SELECT);
-		gotoxy(29,7);
-		isRetry = getche();
+		else {
+			cprintf(23, 4, L"%s", MESSAGE_RIGHT);
+			cprintf(0, 0, " ");
+		}
+		cprintf(17, 5, SELECT);
+		cprintf(0, 0, " ");
+		isRetry = getch();
 		if (isRetry == 'c') {
 			last--;
-		} else if (isRetry == 'r') {
+		}
+		else if (isRetry == 'r') {
 			continue;
-		} else {
+		}
+		else {
 			printf("Bye!");
 			Sleep(100);
 			exit(0);
@@ -177,41 +271,35 @@ int main()
 {
 	char readyFLG;
 	char excuteFLG;
-	
-	textbackground(DARKGRAY);
-	window(1,1,80,25);
+	HWND hConsole;
+	hConsole = GetConsoleHwnd();
+	hDC = GetDC(hConsole);
+	hidecursor();
+
+	window(0, 0, 80, 25, DARKGRAY);
 	clrscr();
-	textbackground(CYAN);
-	window(2,2,79,24);
+	window(2, 2, 79, 24, CYAN);
 	clrscr();
-	gotoxy(21,2);
-	textcolor(7);
-	cprintf("%s",MESSAGE_WELCOME);
-	textbackground(BLUE);
-	window(13,6,67,13);
+	textcolor(WHITE);
+	cprintf(21, 1, L"%s", MESSAGE_WELCOME);
+	window(13, 6, 67, 13, BLUE);
 	clrscr();
-	gotoxy(11,2);
-	textcolor(7);
-	cprintf("%s", MESSAGE_READY);
-	gotoxy(20,6);
-	cprintf("%s", MESSAGE_READY_START);
-	gotoxy(20,7);
-	cprintf("%s", MESSAGE_READY_QUIT);
-	gotoxy(28,4);
-	readyFLG = getche();
+	textcolor(WHITE);
+	cprintf(11, 1, L"%s", MESSAGE_READY);
+	cprintf(20, 5, L"%s", MESSAGE_READY_START);
+	cprintf(20, 6, L"%s", MESSAGE_READY_QUIT);
+	cprintf(0,0," ");
+	readyFLG = getch();
 
 	if (readyFLG == 's')
 	{
 		clrscr();
-		gotoxy(1,2);
-		textcolor(7);
-		cprintf("%s", MESSAGE_START);
-		gotoxy(20,6);
-		cprintf("%s", MESSAGE_START_EXCUTE);
-		gotoxy(20,7);
-		cprintf("%s", MESSAGE_START_QUIT);
-		gotoxy(28,4);
-		excuteFLG = getche();	
+		textcolor(WHITE);
+		cprintf(1, 1, L"%s", MESSAGE_START);
+		cprintf(20, 5, L"%s", MESSAGE_START_EXCUTE);
+		cprintf(20, 6, L"%s", MESSAGE_START_QUIT);
+		cprintf(0, 0, " ");
+		excuteFLG = getch();
 		if (excuteFLG == 'y') {
 			type();
 		}
