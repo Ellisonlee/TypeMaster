@@ -226,7 +226,7 @@ void type() {
 			}
 			else if (check_key[i] == key) {
 				textcolor(GREEN);
-				GetTextExtentPoint32(hDC, check_key, i, &stringWidthInPixel);
+				GetTextExtentPoint32A(hDC, type, i, &stringWidthInPixel);
 				cprintf(23 + (float)stringWidthInPixel.cx / font_width, 2, L"%c", key);
 				cprintf(0, 0, " ");
 				type[i] = key;
@@ -234,7 +234,7 @@ void type() {
 			}
 			else {
 				textcolor(RED);
-				GetTextExtentPoint32(hDC, check_key, i, &stringWidthInPixel);
+				GetTextExtentPoint32A(hDC, type, i, &stringWidthInPixel);
 				cprintf(23 + (float)stringWidthInPixel.cx / font_width, 2, L"%c", key);
 				cprintf(0, 0, " ");
 				type[i] = key;
