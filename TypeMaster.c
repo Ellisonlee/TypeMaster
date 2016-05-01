@@ -1,8 +1,8 @@
-/***************************
-* Create by Ellison Lee
-* Date:2016/04/29
-* Desciption:Type Game
-***************************/
+	/***************************
+	* Create by Ellison Lee
+	* Date:2016/04/29
+	* Desciption:Type Game
+	***************************/
 
 #define _CRT_SECURE_NO_WARNINGS
 #define MAX_STRING_SZ 255
@@ -15,8 +15,8 @@
 #include <time.h>
 #include <windows.h>
 
-//データ定義
-wchar_t *MESSAGE_WELCOME = L"***** ようこそ、TypeMasterへ *****";
+	//データ定義
+	wchar_t *MESSAGE_WELCOME = L"***** ようこそ、TypeMasterへ *****";
 wchar_t *MESSAGE_READY = L"英文タイピング初級編を開始します。";
 wchar_t *MESSAGE_READY_START = L"<Press s to Start>";
 wchar_t *MESSAGE_READY_QUIT = L"<Press q to Quit>";
@@ -32,7 +32,7 @@ COLORREF RED = RGB(255, 0, 0);
 COLORREF DARKGRAY = RGB(74, 65, 65);
 COLORREF CYAN = RGB(120, 120, 170);
 COLORREF WHITE = RGB(255, 255, 255);
-
+COLORREF YELLOW = RGB(204, 204, 0);
 HDC hDC;
 COLORREF textcolor_value;
 
@@ -77,10 +77,10 @@ void clrscr() {
 	Rectangle(hDC, wi.left, wi.top, wi.right, wi.bottom);
 }
 
-void window(int left, int top, int right, int bottom, COLORREF color) {  
+void window(int left, int top, int right, int bottom, COLORREF color) {
 
-	HBRUSH hBrush = CreateSolidBrush(color);	
-	HBRUSH holdBrush = (HBRUSH)SelectObject(hDC, hBrush);    
+	HBRUSH hBrush = CreateSolidBrush(color);
+	HBRUSH holdBrush = (HBRUSH)SelectObject(hDC, hBrush);
 
 	wi.left = left * font_width;
 	wi.top = top * font_height;
@@ -90,19 +90,19 @@ void window(int left, int top, int right, int bottom, COLORREF color) {
 	clrscr();
 }
 
-void eraser(int left, int top, COLORREF color) {
+void eraser(float left, int top, COLORREF color) {
 	HPEN  hPen = CreatePen(PS_NULL, 1, color);
 	HPEN holdPen = (HBRUSH)SelectObject(hDC, hPen);
 	HBRUSH hBrush = CreateSolidBrush(color);
 	HBRUSH holdBrush = (HBRUSH)SelectObject(hDC, hBrush);
-	Rectangle(hDC, left * font_width + wi.left, top * font_height + wi.top, (left+1) * font_width + wi.left, (top+1) * font_height + wi.top);
+	Rectangle(hDC, left * font_width + wi.left, top * font_height + wi.top, (left + 1) * font_width + wi.left, (top + 1) * font_height + wi.top);
 }
 
 void textcolor(COLORREF color) {
 	textcolor_value = color;
 }
 
-void cprintf(int x, int y, wchar_t* key, ...) {
+void cprintf(float x, int y, wchar_t* key, ...) {
 	wchar_t dest[MAX_STRING_SZ];
 	va_list arg;
 	va_start(arg, key);
@@ -191,6 +191,32 @@ struct FileInfo* read_file() {
 	return fi;
 }
 
+void timer() {
+	int milliseconds = 0;
+	int seconds = 0;
+	int minutes = 0;
+	int hours = 0;
+
+	while (1) {
+		clrscr();
+		if (milliseconds == 10) {
+			++seconds;
+			milliseconds = 0;
+		}
+		if (seconds == 60) {
+			++minutes;
+			seconds = 0;
+		}
+		if (minutes == 60) {
+			++hours;
+			minutes = 0;
+		}
+		cprintf( 40,10,"%s: %s: %s.%s", hours, minutes, seconds, milliseconds);
+		++milliseconds;
+		Sleep(100);
+	}
+}
+
 void type() {
 	char type[MAX_STRING_SZ];
 	char key;
@@ -202,6 +228,8 @@ void type() {
 	int len;
 	struct FileInfo* fi;
 	wchar_t *check_key;
+	SIZE stringWidthInPixel;
+
 	fi = read_file();
 
 	for (last = fi->num; last > 0; ) {
@@ -220,18 +248,21 @@ void type() {
 			key = getch();//Get a Key From Keyboard and Not Show It
 			if ((i > 0) && (key == 127 || key == 8)) {
 				i--;
-				eraser(23 + i, 2, BLUE);
+				GetTextExtentPoint32A(hDC, type, i, &stringWidthInPixel);
+				eraser(23 + (float)stringWidthInPixel.cx / font_width, 2, BLUE);
 			}
 			else if (check_key[i] == key) {
 				textcolor(GREEN);
-				cprintf(23 + i, 2, L"%c", key);
+				GetTextExtentPoint32A(hDC, type, i, &stringWidthInPixel);
+				cprintf(23 + (float)stringWidthInPixel.cx / font_width, 2, L"%c", key);
 				cprintf(0, 0, " ");
 				type[i] = key;
 				i++;
 			}
 			else {
 				textcolor(RED);
-				cprintf(23 + i, 2, L"%c", key);
+				GetTextExtentPoint32A(hDC, type, i, &stringWidthInPixel);
+				cprintf(23 + (float)stringWidthInPixel.cx / font_width, 2, L"%c", key);
 				cprintf(0, 0, " ");
 				type[i] = key;
 				i++;
@@ -288,9 +319,9 @@ int main()
 	cprintf(11, 1, L"%s", MESSAGE_READY);
 	cprintf(20, 5, L"%s", MESSAGE_READY_START);
 	cprintf(20, 6, L"%s", MESSAGE_READY_QUIT);
-	cprintf(0,0," ");
+	cprintf(0, 0, " ");
 	readyFLG = getch();
-
+	timer();
 	if (readyFLG == 's')
 	{
 		clrscr();
