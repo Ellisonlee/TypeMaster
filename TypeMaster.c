@@ -1,8 +1,8 @@
-	/***************************
-	* Create by Ellison Lee
-	* Date:2016/04/29
-	* Desciption:Type Game
-	***************************/
+/***************************
+* Create by Ellison Lee
+* Date:2016/04/29
+* Desciption:Type Game
+***************************/
 
 #define _CRT_SECURE_NO_WARNINGS
 #define MAX_STRING_SZ 255
@@ -14,9 +14,10 @@
 #include <ctype.h>
 #include <time.h>
 #include <windows.h>
+#include <sys\timeb.h> 
 
-	//データ定義
-	wchar_t *MESSAGE_WELCOME = L"***** ようこそ、TypeMasterへ *****";
+//データ定義
+wchar_t *MESSAGE_WELCOME = L"***** ようこそ、TypeMasterへ *****";
 wchar_t *MESSAGE_READY = L"英文タイピング初級編を開始します。";
 wchar_t *MESSAGE_READY_START = L"<Press s to Start>";
 wchar_t *MESSAGE_READY_QUIT = L"<Press q to Quit>";
@@ -34,13 +35,13 @@ COLORREF CYAN = RGB(120, 120, 170);
 COLORREF WHITE = RGB(255, 255, 255);
 COLORREF YELLOW = RGB(204, 204, 0);
 HDC hDC;
+HDC consoleDC;
 COLORREF textcolor_value;
 
 int font_width = 8;
 int font_height = 18;
 
-typedef struct Window_Info
-{
+typedef struct Window_Info {
 	int left;
 	int right;
 	int top;
@@ -49,8 +50,7 @@ typedef struct Window_Info
 } Window_Info;
 Window_Info wi;
 
-HWND GetConsoleHwnd(void)
-{
+HWND GetConsoleHwnd(void) {
 	// Buffer size for console window titles.
 	HWND hwndFound;         // This is what is returned to the caller.
 	char pszNewWindowTitle[MY_BUFSIZE]; // Contains fabricated
@@ -71,6 +71,10 @@ HWND GetConsoleHwnd(void)
 	SetConsoleTitle(pszOldWindowTitle);
 
 	return(hwndFound);
+}
+
+void flip() {
+	BitBlt(consoleDC, 0, 0, 1000, 1000, hDC, 0, 0, SRCCOPY);
 }
 
 void clrscr() {
@@ -114,21 +118,19 @@ void cprintf(float x, int y, wchar_t* key, ...) {
 	TextOut(hDC, x * font_width + wi.left, y * font_height + wi.top, dest, wcslen(dest));
 }
 
-int stringCompare(char str1[], char str2[]) {
+int stringCompare(wchar_t str1[], char str2[]) {
 	int i = 0, ret = 0;
 	int len1;
 	int len2;
 
-	len1 = strlen(str1);
+	len1 = wcslen(str1);
 	len2 = strlen(str2);
 
-	while (i < len1 && i < len2)
-	{
+	while (i < len1 && i < len2) {
 		if (str1[i] == str2[i]) {
 			i++;
 		}
-		else
-		{
+		else {
 			ret = i + 1;
 			break;
 		}
@@ -141,8 +143,8 @@ int stringCompare(char str1[], char str2[]) {
 	return ret;
 }
 
-void hidecursor()
-{
+
+void hidecursor() {
 	HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_CURSOR_INFO info;
 	info.dwSize = 100;
@@ -191,32 +193,6 @@ struct FileInfo* read_file() {
 	return fi;
 }
 
-void timer() {
-	int milliseconds = 0;
-	int seconds = 0;
-	int minutes = 0;
-	int hours = 0;
-
-	while (1) {
-		clrscr();
-		if (milliseconds == 10) {
-			++seconds;
-			milliseconds = 0;
-		}
-		if (seconds == 60) {
-			++minutes;
-			seconds = 0;
-		}
-		if (minutes == 60) {
-			++hours;
-			minutes = 0;
-		}
-		cprintf( 40,10,"%s: %s: %s.%s", hours, minutes, seconds, milliseconds);
-		++milliseconds;
-		Sleep(100);
-	}
-}
-
 void type() {
 	char type[MAX_STRING_SZ];
 	char key;
@@ -229,6 +205,11 @@ void type() {
 	struct FileInfo* fi;
 	wchar_t *check_key;
 	SIZE stringWidthInPixel;
+	struct timeb start, end;
+	float milliseconds = 0;
+	float seconds = 0;
+	int minutes = 0;
+	int hours = 0;
 
 	fi = read_file();
 
@@ -239,10 +220,35 @@ void type() {
 		clrscr();
 		cprintf(23, 1, L"%s", check_key);
 		cprintf(0, 0, " ");
+		ftime(&start);
 
 		i = 0;
 		while (i < len) {
+			ftime(&end);
+			textcolor(RED);
+			Rectangle(hDC, wi.left + 1 * font_width, wi.top + 15 * font_height, wi.left + 1 * font_width + 100, wi.top + 16 * font_height);
+			milliseconds = end.millitm - start.millitm;
+			seconds = end.time - start.time;
+			if (seconds > 60) {
+				ftime(&start);
+				minutes++;
+				seconds = 0;
+			}
+			if (minutes > 60) {
+				ftime(&start);
+				hours++;
+				minutes = 0;
+			}
+			if (hours > 60) {
+				milliseconds = 0;
+				seconds = 0;
+				minutes = 0;
+				hours = 0;
+				ftime(&start);
+			}
+			cprintf(3, 15, L"%02d:%02d:%02.01f",hours,minutes, ((end.time - start.time) * 1000.0f + (end.millitm - start.millitm)) / 1000.0f);
 			if (!kbhit()) {
+				flip();
 				continue;
 			}
 			key = getch();//Get a Key From Keyboard and Not Show It
@@ -267,6 +273,7 @@ void type() {
 				type[i] = key;
 				i++;
 			}
+			flip();
 		}
 		type[i] = '\0';
 		wrong_index = stringCompare(fi->strs[fi->num - last], type);
@@ -282,6 +289,7 @@ void type() {
 		}
 		cprintf(17, 5, SELECT);
 		cprintf(0, 0, " ");
+		flip();
 		isRetry = getch();
 		if (isRetry == 'c') {
 			last--;
@@ -298,13 +306,17 @@ void type() {
 
 }
 
-int main()
-{
+int main() {
 	char readyFLG;
 	char excuteFLG;
 	HWND hConsole;
+	HBITMAP bitmap;
+
 	hConsole = GetConsoleHwnd();
-	hDC = GetDC(hConsole);
+	consoleDC = GetDC(hConsole);
+	hDC = CreateCompatibleDC(consoleDC);
+	bitmap = CreateCompatibleBitmap(consoleDC, 1000, 1000);
+	SelectObject(hDC, bitmap);
 	hidecursor();
 
 	window(0, 0, 80, 25, DARKGRAY);
@@ -320,38 +332,35 @@ int main()
 	cprintf(20, 5, L"%s", MESSAGE_READY_START);
 	cprintf(20, 6, L"%s", MESSAGE_READY_QUIT);
 	cprintf(0, 0, " ");
+	flip();
 	readyFLG = getch();
-	timer();
-	if (readyFLG == 's')
-	{
+	//timer();
+	if (readyFLG == 's') {
 		clrscr();
 		textcolor(WHITE);
 		cprintf(1, 1, L"%s", MESSAGE_START);
 		cprintf(20, 5, L"%s", MESSAGE_START_EXCUTE);
 		cprintf(20, 6, L"%s", MESSAGE_START_QUIT);
 		cprintf(0, 0, " ");
+		flip();
 		excuteFLG = getch();
 		if (excuteFLG == 'y') {
 			type();
 		}
-		else if (excuteFLG == 'n')
-		{
+		else if (excuteFLG == 'n') {
 			printf("Bye!\n");
 			return 0;
 		}
-		else
-		{
+		else {
 			printf("type error");
 			return 0;
 		}
 	}
-	else if (readyFLG == 'q')
-	{
+	else if (readyFLG == 'q') {
 		printf("Bye!\n");
 		return 0;
 	}
-	else
-	{
+	else {
 		printf("type error");
 		return 0;
 	}
