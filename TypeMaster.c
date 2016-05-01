@@ -14,6 +14,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <windows.h>
+#include <sys\timeb.h> 
 
 //データ定義
 wchar_t *MESSAGE_WELCOME = L"***** ようこそ、TypeMasterへ *****";
@@ -228,6 +229,7 @@ void type() {
 	struct FileInfo* fi;
 	wchar_t *check_key;
 	SIZE stringWidthInPixel;
+	struct timeb start, end;
 
 	fi = read_file();
 
@@ -238,9 +240,14 @@ void type() {
 		clrscr();
 		cprintf(23, 1, L"%s", check_key);
 		cprintf(0, 0, " ");
+		ftime(&start);
 
 		i = 0;
 		while (i < len) {
+			ftime(&end);
+			textcolor(RED);
+			Rectangle(hDC, wi.left - 10 * font_width, wi.top + 15 * font_height, wi.left - 10 * font_width + 100, wi.top + 16 * font_height);
+			cprintf(-10, 15, L"%.01f", ((end.time - start.time) * 1000.0f + (end.millitm - start.millitm)) / 1000.0f);
 			if (!kbhit()) {
 				flip();
 				continue;
